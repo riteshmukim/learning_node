@@ -25,15 +25,28 @@ app.get("/messages", (req, res) => {
 app.post("/messages", (req, res) => {
   const message = new Message(req.body);
 
-  message.save((err) => {
-    if (err) {
-      console.log(err);
-      res.sendStatus(500);
-    }
+  message
+    .save()
+    .then(() => {
+      console.log("saved");
+      return Message.findOne({ message: "badwords" });
+    })
+    .then((censored) => {
+      if (censored) {
+        console.log("censored message found", censored);
+        return Message.deleteOne({ _id: censored.id });
+      }
 
-    io.emit("message", req.body);
-    res.sendStatus(200);
-  });
+      io.emit("message", req.body);
+      res.sendStatus(200);
+    })
+    .then(() => {
+      console.log("deleted");
+    })
+    .catch((err) => {
+      res.sendStatus(500);
+      return console.error(err);
+    });
 });
 
 io.on("connection", (socket) => {
