@@ -22,31 +22,25 @@ app.get("/messages", (req, res) => {
   });
 });
 
-app.post("/messages", (req, res) => {
+app.post("/messages", async (req, res) => {
   const message = new Message(req.body);
 
-  message
-    .save()
-    .then(() => {
-      console.log("saved");
-      return Message.findOne({ message: "badwords" });
-    })
-    .then((censored) => {
-      if (censored) {
-        console.log("censored message found", censored);
-        return Message.deleteOne({ _id: censored.id });
-      }
+  try {
+    const savedMessage = await message.save();
+    console.log("saved");
+    const censored = await Message.findOne({ message: "badwords" });
 
+    if (censored) {
+      console.log("censored message found", censored);
+      await Message.deleteOne({ _id: censored.id });
+    } else {
       io.emit("message", req.body);
-      res.sendStatus(200);
-    })
-    .then(() => {
-      console.log("deleted");
-    })
-    .catch((err) => {
-      res.sendStatus(500);
-      return console.error(err);
-    });
+    }
+    res.sendStatus(200);
+  } catch (err) {
+    res.sendStatus(500);
+    return console.error(err);
+  }
 });
 
 io.on("connection", (socket) => {
