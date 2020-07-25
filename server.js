@@ -22,10 +22,16 @@ app.get("/messages", (req, res) => {
   });
 });
 
-app.post("/messages", async (req, res) => {
-  const message = new Message(req.body);
+app.get("/messages/:user", (req, res) => {
+  const user = req.params.user;
+  Message.find({ name: user }, (err, messages) => {
+    res.send(messages);
+  });
+});
 
+app.post("/messages", async (req, res) => {
   try {
+    const message = new Message(req.body);
     const savedMessage = await message.save();
     console.log("saved");
     const censored = await Message.findOne({ message: "badwords" });
@@ -40,6 +46,8 @@ app.post("/messages", async (req, res) => {
   } catch (err) {
     res.sendStatus(500);
     return console.error(err);
+  } finally {
+    // logger.log('message successfully savef');
   }
 });
 
